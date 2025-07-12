@@ -38,6 +38,10 @@ function useWaitForElement() {
         })
 
         let date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span')
+        date.addEventListener('change', (e) => {
+            console.log('✅ 触发 change:', e.target.value);
+            renderBarChart(chartDiv, [5, 20, 36, 10, 123]);
+        })
         let startDate
         let endDate
         if (date) {
@@ -113,34 +117,28 @@ function useWaitForElement() {
 }
 
 
-window.onload = function () {
-    const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
-    if (target) {
-        console.log('元素已加载:', target);
-    } else {
-        console.log('元素未找到');
-    }
-};
+// window.onload = function () {
+//     const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
+//     if (target) {
+//         console.log('元素已加载:', target);
+//     } else {
+//         console.log('元素未找到');
+//     }
+// };
 
-const observer = new MutationObserver((mutationsList, observer) => {
-    const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
-    if (target) {
-        console.log('元素已加载2:', target);
-        observer.disconnect(); // 一旦找到了目标元素，停止观察
-    }
-});
+// const observer = new MutationObserver((mutationsList, observer) => {
+//     const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
+//     if (target) {
+//         console.log('元素已加载2:', target);
+//         observer.disconnect(); // 一旦找到了目标元素，停止观察
+//     }
+// });
 
 // 监听整个页面的 DOM 变化
-observer.observe(document.body, { childList: true, subtree: true });
+// observer.observe(document.body, { childList: true, subtree: true });
 
 
-//   if(window.location.pathname='intelligenceCenter/ProductAdvertiseDepositNew'){
 useWaitForElement()
-//   }
-
-window.addEventListener('popstate', (event) => {
-    console.log('Hash Changed:', window.location.hash);
-});
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -198,6 +196,7 @@ function generateFakeList(count = 25) {
             id: i,
             name: `名称${i}`,
             age: 20 + (i % 10),
+            date: getRandomDate(new Date('2025-01-01'), new Date('2025-01-30')),
             gender: i % 2 === 0 ? '男' : '女',
             city: `城市${i % 5}`,
             phone: `1380000${1000 + i}`,
@@ -209,6 +208,23 @@ function generateFakeList(count = 25) {
     }
     return list;
 }
+
+function getRandomDate(start, end) {
+    const startTime = start.getTime();
+    const endTime = end.getTime();
+    const randomTime = startTime + Math.random() * (endTime - startTime);
+    const randomDate = new Date(randomTime);
+    // 格式化为 yyyy-mm-dd
+    return randomDate.toISOString().split('T')[0];
+}
+
+const randomDate = getRandomDate(new Date('2025-01-01'), new Date('2025-01-30'));
+
+
+
+
+
+
 
 function renderTable(container, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
     container.innerHTML = '';
@@ -229,16 +245,15 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
     };
 
 
-    // 全量显示按钮
-    //   const showAllBtn = document.createElement('button');
-    //   showAllBtn.textContent = showAll ? '分页显示' : '全量显示';
-    //   showAllBtn.style.marginLeft = '10px';
-    //   showAllBtn.onclick = () => {
-    //     onPageSizeChange(showAll ? 10 : -1); // 切换全量/分页
-    //   };
-    //   controlDiv.appendChild(showAllBtn);
 
-    //   container.appendChild(controlDiv);
+    const dateSelect = document.createElement('select');
+    for (let i = 0; i < 30; i++) {
+        const dateOption = document.createElement('option')
+        dateOption.value = i
+        dateOption.textContent = i
+        dateSelect.appendChild(dateOption)
+    }
+    container.appendChild(dateSelect)
 
     // 表格
     const table = document.createElement('table');
@@ -261,12 +276,13 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
 
     // 表体
     const tbody = document.createElement('tbody');
+    //遍历数据
     data.forEach(row => {
         const tr = document.createElement('tr');
         Object.values(row).forEach(val => {
             const td = document.createElement('td');
             td.textContent = val;
-            td.style.border = '1px solid #ccc';
+            td.style.border = '1px solid #006ccc';
             td.style.padding = '4px 8px';
             tr.appendChild(td);
         });
@@ -307,8 +323,3 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
 
     }
 }
-
-
-
-
-
