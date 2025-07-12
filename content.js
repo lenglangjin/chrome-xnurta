@@ -12,107 +12,116 @@ function waitForElement(selector, callback) {
 
 function useWaitForElement() {
     if (window.location.pathname !== '/intelligenceCenter/AIBoard') {
-        return
+        return;
     }
-    waitForElement('#main > div > div.chart-box', (target) => {
+    waitForElement('#main > div > div.chart-box', async (target) => {
         const newDiv = document.createElement('div');
-        newDiv.style.backgroundColor = 'white'
-        // 创建图表容器
-        // const chartDiv = document.createElement('div');
-        // chartDiv.style.width = '100%';
-        // chartDiv.style.height = '280px';
-        // chartDiv.style.marginTop = '10px';
-        // newDiv.appendChild(chartDiv);
-
+        newDiv.style.backgroundColor = 'white';
         target.insertAdjacentElement('afterend', newDiv);
 
-
-        localStorageData = window.localStorage.getItem('xmars-token');
-
-        console.log('target', target);
-
-        target.addEventListener('change', (e) => {
-            console.log('✅ 触发 change:', e.target.value);
-            renderBarChart(chartDiv, [5, 20, 36, 10, 100]);
-
-        })
-
-        let date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span')
-        date.addEventListener('change', (e) => {
-            console.log('✅ 触发 change:', e.target.value);
-            renderBarChart(chartDiv, [5, 20, 36, 10, 123]);
-        })
-        let startDate
-        let endDate
-        if (date) {
-            console.log('筛选日期：', date.textContent)
-            startDate = date.textContent.split('~')[0].trim()
-            endDate = date.textContent.split('~')[0].trim()
+        const localStorageData = window.localStorage.getItem('xmars-token');
+        if (!localStorageData) {
+            console.error('未获取到 token');
+            return;
+        }
+        let jwt = '';
+        try {
+            jwt = JSON.parse(localStorageData)['jwt'];
+        } catch (e) {
+            console.error('token 解析失败', e);
+            return;
         }
 
-        let fakeList = [];
+        // 日期选择器
+        const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
+        let startDate = '';
+        let endDate = '';
+        if (date && date.textContent) {
+            const dateArr = date.textContent.split('~').map(s => s.trim());
+            startDate = dateArr[0] || '';
+            endDate = dateArr[1] || '';
+            console.log('筛选日期：', startDate, endDate);
+        }
 
-        const body = {"profileId":"4030808021653559","resourceTypes":[],"operationTypes":[],"startDate":"2024-07-04","endDate":"2024-07-28","labelType":"or","labelIds":[],"txtType":"resource","txtVal":"","campaignId":5512944,"adTypes":["sponsoredProducts"],"orderBy":"","orderKey":"","page":1,"pageSize":25,"pagelimit":25}
-        fetch('https://api.xnurta.com/changelog/search', {
-            method: 'POST', // or POST
-            body: JSON.stringify(body) ,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + JSON.parse(localStorageData)['jwt']
-            }
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log('✅ 请求成功：', data);
-                if(data['status'] == 1){
-                    fakeList = data['data']['record']
-                }
-                const tableDiv = document.createElement('div');
-                tableDiv.style.marginTop = '20px';
-                newDiv.appendChild(tableDiv);
-
-                // 分页逻辑
-                let page = 1;
-                let pageSize = 10;
-                let showAll = false;
-                const pageSizeOptions = [10, 20, 50, 100];
-
-                function updateTable() {
-                    let displayData;
-                    if (pageSize === -1) {
-                        displayData = fakeList;
-                        showAll = true;
-                    } else {
-                        displayData = fakeList.slice((page - 1) * pageSize, page * pageSize);
-                        showAll = false;
-                    }
-                    renderTable(
-                        tableDiv,
-                        displayData,
-                        page,
-                        pageSize,
-                        fakeList.length,
-                        pageSizeOptions,
-                        (newPage) => { page = newPage; updateTable(); },
-                        (newPageSize) => { pageSize = newPageSize; page = 1; updateTable(); },
-                        showAll
-                    );
-                }
-                updateTable();
-
-            })
-            .catch(err => {
-                console.error('❌ 请求失败：', err);
+        // 监听日期变化
+        if (date) {
+            date.addEventListener('change', (e) => {
+                console.log('✅ 触发 change:', e.target.value);
+                // renderBarChart(chartDiv, [5, 20, 36, 10, 123]);
             });
+        }
 
+        // 请求数据
+        let fakeList = [];
+        const body = {
+            profileId: '4030808021653559',
+            resourceTypes: [],
+            operationTypes: [],
+            startDate: startDate || '2024-07-04',
+            endDate: endDate || '2024-07-28',
+            labelType: 'or',
+            labelIds: [],
+            txtType: 'resource',
+            txtVal: '',
+            campaignId: 5512944,
+            adTypes: ['sponsoredProducts'],
+            orderBy: '',
+            orderKey: '',
+            page: 1,
+            pageSize: 25,
+            pagelimit: 25
+        };
+        try {
+            const res = await fetch('https://api.xnurta.com/changelog/search', {
+                method: 'POST',
+                body: JSON.stringify(body),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + jwt
+                }
+            });
+            const data = await res.json();
+            console.log('✅ 请求成功：', data);
+            if (data['status'] == 1) {
+                fakeList = data['data']['record'];
+            }
+        } catch (err) {
+            console.error('❌ 请求失败：', err);
+        }
 
-        // 加载 ECharts 并渲染
-        // loadEcharts(() => {
-        //   renderBarChart(chartDiv,[5, 20, 36, 10, 10]);
-        // });
+        // 渲染表格
+        const tableDiv = document.createElement('div');
+        tableDiv.style.marginTop = '20px';
+        newDiv.appendChild(tableDiv);
 
+        // 分页逻辑
+        let page = 1;
+        let pageSize = 10;
+        let showAll = false;
+        const pageSizeOptions = [10, 20, 50, 100];
 
-
+        function updateTable() {
+            let displayData;
+            if (pageSize === -1) {
+                displayData = fakeList;
+                showAll = true;
+            } else {
+                displayData = fakeList.slice((page - 1) * pageSize, page * pageSize);
+                showAll = false;
+            }
+            renderTable(
+                tableDiv,
+                displayData,
+                page,
+                pageSize,
+                fakeList.length,
+                pageSizeOptions,
+                (newPage) => { page = newPage; updateTable(); },
+                (newPageSize) => { pageSize = newPageSize; page = 1; updateTable(); },
+                showAll
+            );
+        }
+        updateTable();
     });
 }
 
