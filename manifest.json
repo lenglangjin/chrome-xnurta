@@ -16,7 +16,7 @@
       "128": "icon128.png"
     },
     "default_popup": "popup.html",
-    "default_title": "公号小助手"
+    "default_title": "xnurta"
   },
   "permissions": [
     "declarativeContent",

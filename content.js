@@ -1,4 +1,5 @@
 
+
 function waitForElement(selector, callback) {
     const timer = setInterval(() => {
         const el = document.querySelector(selector);
@@ -44,12 +45,26 @@ function useWaitForElement() {
         }
 
         // 监听日期变化
+        // if (date) {
+        //     date.addEventListener('change', (e) => {
+        //         console.log('✅ 触发 change:', e.target.value);
+        //         // renderBarChart(chartDiv, [5, 20, 36, 10, 123]);
+        //     });
+        // }
         if (date) {
-            date.addEventListener('change', (e) => {
-                console.log('✅ 触发 change:', e.target.value);
-                // renderBarChart(chartDiv, [5, 20, 36, 10, 123]);
+            const observer = new MutationObserver(() => {
+              const value = target.textContent.trim();
+              const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
+              console.log("日期变了",date.textContent)
             });
-        }
+          
+            observer.observe(date, {
+              childList: true,
+              characterData: true,
+              subtree: true,
+            });
+          
+          }
 
         // 请求数据
         let fakeList = [];
@@ -68,9 +83,10 @@ function useWaitForElement() {
             orderBy: '',
             orderKey: '',
             page: 1,
-            pageSize: 25,
+            pageSize: 2500,
             pagelimit: 25
         };
+        console.log("请求参数body:",body)
         try {
             const res = await fetch('https://api.xnurta.com/changelog/search', {
                 method: 'POST',
@@ -82,6 +98,7 @@ function useWaitForElement() {
             });
             const data = await res.json();
             console.log('✅ 请求成功：', data);
+            
             if (data['status'] == 1) {
                 fakeList = data['data']['record'];
             }
@@ -157,17 +174,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if ("initData" === message.action) {
         const fetchData = getContent()
-        console.log("MP-VX-Insight ==> 微信小助手获取到的数据：", fetchData)
+        console.log("MP-VX-Insight ==> xnurta小助手获取到的数据：", fetchData)
         req.action = "afterFetchData"
         req.params = fetchData
         req.info = "抓取了页面上的数据"
+
+        chrome.runtime.sendMessage(req, res => {
+            console.log("MP-VX-Insight ==> content2popup then res -> ", res)
+        })
+
+        sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
     }
 
-    chrome.runtime.sendMessage(req, res => {
-        console.log("MP-VX-Insight ==> content2popup then res -> ", res)
-    })
+    if( "send"===message.action){
+        console.log("content收到来自popup到消息",message,sender)
+        sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
+    }
 
-    sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
+
 })
 
 
