@@ -83,8 +83,8 @@ function useWaitForElement() {
             orderBy: '',
             orderKey: '',
             page: 1,
-            pageSize: 2500,
-            pagelimit: 25
+            pageSize: 25,
+            pagelimit: 2500
         };
         console.log("请求参数body:",body)
         try {
@@ -98,7 +98,7 @@ function useWaitForElement() {
             });
             const data = await res.json();
             console.log('✅ 请求成功：', data);
-            
+
             if (data['status'] == 1) {
                 fakeList = data['data']['record'];
             }
@@ -262,7 +262,60 @@ const randomDate = getRandomDate(new Date('2025-01-01'), new Date('2025-01-30'))
 function renderTable(container, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
     container.innerHTML = '';
 
+    // 只展示这些字段
+    const showFields = ['campaignName', 'resourceName', 'changeField', 'beforevalue', 'aftervalue', 'changedDate', 'changedBy'];
 
+    // ====== 新增：筛选控件 ======
+    // 获取所有唯一的 resourceName 和 changeddate
+    const resourceNames = Array.from(new Set(data.map(item => item.resourceName).filter(Boolean)));
+    const changedDates = Array.from(new Set(data.map(item => item.changedDate).filter(Boolean)));
+
+    // 当前筛选值（用全局变量或挂在 container 上，避免每次渲染丢失）
+    if (!container._selectedResource) container._selectedResource = '';
+    if (!container._selectedDate) container._selectedDate = '';
+
+    // resourceName 筛选
+    const resourceSelect = document.createElement('select');
+    const resourceDefault = document.createElement('option');
+    resourceDefault.value = '';
+    resourceDefault.textContent = '全部资源';
+    resourceSelect.appendChild(resourceDefault);
+    resourceNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (container._selectedResource === name) opt.selected = true;
+        resourceSelect.appendChild(opt);
+    });
+    resourceSelect.onchange = () => {
+        container._selectedResource = resourceSelect.value;
+        onPageChange(1); // 筛选后回到第一页
+    };
+    container.appendChild(resourceSelect);
+
+    // changeddate 筛选
+    const dateSelect = document.createElement('select');
+    const dateDefault = document.createElement('option');
+    dateDefault.value = '';
+    dateDefault.textContent = '全部日期';
+    dateSelect.appendChild(dateDefault);
+    const addedDates = new Set();
+    changedDates.forEach(date => {
+        date = (date || '').slice(0, 10);
+        if(!addedDates.has(date)){
+            const opt = document.createElement('option');
+            opt.value = date;
+            opt.textContent = date;
+            if (container._selectedDate === date) opt.selected = true;
+            dateSelect.appendChild(opt);
+            addedDates.add(date);
+        }
+    });
+    dateSelect.onchange = () => {
+        container._selectedDate = dateSelect.value;
+        onPageChange(1); // 筛选后回到第一页
+    };
+    container.appendChild(dateSelect);
 
     // 每页显示数量选择
     const select = document.createElement('select');
@@ -276,17 +329,26 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
     select.onchange = () => {
         onPageSizeChange(Number(select.value));
     };
+    container.appendChild(select);
 
-
-
-    const dateSelect = document.createElement('select');
-    for (let i = 0; i < 30; i++) {
-        const dateOption = document.createElement('option')
-        dateOption.value = i
-        dateOption.textContent = i
-        dateSelect.appendChild(dateOption)
+    // ====== 数据筛选 ======
+    let filteredData = data;
+    if (container._selectedResource) {
+        filteredData = filteredData.filter(item => item.resourceName === container._selectedResource);
     }
-    container.appendChild(dateSelect)
+    if (container._selectedDate) {
+        filteredData = filteredData.filter(item => (item.changedDate || '').slice(0, 10) === container._selectedDate);
+    }
+
+    // ====== 分页处理 ======
+    let displayData;
+    if (pageSize === -1) {
+        displayData = filteredData;
+        showAll = true;
+    } else {
+        displayData = filteredData.slice((page - 1) * pageSize, page * pageSize);
+        showAll = false;
+    }
 
     // 表格
     const table = document.createElement('table');
@@ -297,7 +359,7 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
     // 表头
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    Object.keys(data[0] || {}).forEach(key => {
+    showFields.forEach(key => {
         const th = document.createElement('th');
         th.textContent = key;
         th.style.border = '1px solid #ccc';
@@ -309,12 +371,11 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
 
     // 表体
     const tbody = document.createElement('tbody');
-    //遍历数据
-    data.forEach(row => {
+    displayData.forEach(row => {
         const tr = document.createElement('tr');
-        Object.values(row).forEach(val => {
+        showFields.forEach(key => {
             const td = document.createElement('td');
-            td.textContent = val;
+            td.textContent = row[key] || '';
             td.style.border = '1px solid #006ccc';
             td.style.padding = '4px 8px';
             tr.appendChild(td);
@@ -330,7 +391,7 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
         const pageDiv = document.createElement('div');
         pageDiv.style.textAlign = 'right';
 
-        const totalPages = Math.ceil(total / pageSize);
+        const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
         const prevBtn = document.createElement('button');
         prevBtn.textContent = '上一页';
         prevBtn.disabled = page === 1;
@@ -345,14 +406,9 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
         pageDiv.appendChild(document.createTextNode(` 第${page}/${totalPages}页 `));
         pageDiv.appendChild(nextBtn);
 
-        // 分页控件
-        // const controlDiv = document.createElement('div');
-        // controlDiv.style.marginBottom = '10px';
         pageDiv.appendChild(document.createTextNode('每页显示：'));
         pageDiv.appendChild(select);
 
         container.appendChild(pageDiv);
-
-
     }
 }
