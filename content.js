@@ -264,7 +264,7 @@ function renderTable(container,allData, data, page, pageSize, total, pageSizeOpt
     container.innerHTML = '';
 
     // 只展示这些字段
-    const showFields = ['campaignName', 'resourceName', 'changeField', 'beforevalue', 'aftervalue', 'changedDate', 'changedBy'];
+    const showFields = ['campaignName', 'resourceName', 'changeField', 'previousValue', 'newValue', 'changedDate', 'changedBy'];
 
     // ====== 新增：筛选控件 ======
     // 获取所有唯一的 resourceName 和 changeddate
