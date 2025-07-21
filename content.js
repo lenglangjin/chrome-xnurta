@@ -115,7 +115,7 @@ function useWaitForElement() {
         let page = 1;
         let pageSize = 10;
         let showAll = false;
-        const pageSizeOptions = [10, 20, 50, 100];
+        const pageSizeOptions = [10, 20, 50, 100,1000000000];
 
         function updateTable() {
             let displayData;
@@ -128,7 +128,8 @@ function useWaitForElement() {
             }
             renderTable(
                 tableDiv,
-                displayData,
+                fakeList,
+                fakeList,
                 page,
                 pageSize,
                 fakeList.length,
@@ -259,7 +260,7 @@ const randomDate = getRandomDate(new Date('2025-01-01'), new Date('2025-01-30'))
 
 
 
-function renderTable(container, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
+function renderTable(container,allData, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
     container.innerHTML = '';
 
     // 只展示这些字段
@@ -267,8 +268,8 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
 
     // ====== 新增：筛选控件 ======
     // 获取所有唯一的 resourceName 和 changeddate
-    const resourceNames = Array.from(new Set(data.map(item => item.resourceName).filter(Boolean)));
-    const changedDates = Array.from(new Set(data.map(item => item.changedDate).filter(Boolean)));
+    const resourceNames = Array.from(new Set(allData.map(item => item.resourceName).filter(Boolean)));
+    const changedDates = Array.from(new Set(allData.map(item => item.changedDate).filter(Boolean)));
 
     // 当前筛选值（用全局变量或挂在 container 上，避免每次渲染丢失）
     if (!container._selectedResource) container._selectedResource = '';
@@ -391,7 +392,7 @@ function renderTable(container, data, page, pageSize, total, pageSizeOptions, on
         const pageDiv = document.createElement('div');
         pageDiv.style.textAlign = 'right';
 
-        const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+        const totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
         const prevBtn = document.createElement('button');
         prevBtn.textContent = '上一页';
         prevBtn.disabled = page === 1;
