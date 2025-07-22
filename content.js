@@ -1,5 +1,4 @@
 
-
 function waitForElement(selector, callback) {
     const timer = setInterval(() => {
         const el = document.querySelector(selector);
@@ -8,6 +7,40 @@ function waitForElement(selector, callback) {
             callback(el);
         }
     }, 100); // 每 100ms 检查一次
+}
+
+function getURLParam(url){
+    const params = new URL(url).searchParams;
+
+    const aiGroupId = params.get('aiGroupId');
+    const profileId = params.get('profileId');
+    const tenantId = params.get('tenantId');
+
+    // 1. 获取并解码 breadcrumbs 参数
+    const breadcrumbsRaw = params.get('breadcrumbs');
+    const breadcrumbsDecoded = decodeURIComponent(breadcrumbsRaw);
+
+    // 2. 转换成 JSON 对象
+    // let breadcrumbs = [];
+    // try {
+    // breadcrumbs = JSON.parse(breadcrumbsDecoded);
+    // } catch (e) {
+    // console.error('解析 breadcrumbs 失败', e);
+    // }
+    // // 假设我们只取第一个 breadcrumb 的 query 参数
+    // let profileId = null;
+    // let tenantId = null;
+
+    // if (breadcrumbs.length > 0 && breadcrumbs[0].to && breadcrumbs[0].to.query) {
+    // const query = breadcrumbs[0].to.query;
+    // profileId = query.profileId;
+    // tenantId = query.tenantId;
+    // }
+
+    console.log('aiGroupId:', aiGroupId);
+    console.log('profileId:', profileId);
+    console.log('tenantId:', tenantId);
+    return {aiGroupId,profileId,tenantId}
 }
 
 
@@ -68,32 +101,76 @@ function useWaitForElement() {
 
         // 请求数据
         let fakeList = [];
-        const body = {
-            profileId: '4030808021653559',
+        // const body = {
+        //     profileId: '4030808021653559',
+        //     resourceTypes: [],
+        //     operationTypes: [],
+        //     startDate: startDate || '2024-07-04',
+        //     endDate: endDate || '2024-07-28',
+        //     labelType: 'or',
+        //     labelIds: [],
+        //     txtType: 'resource',
+        //     txtVal: '',
+        //     campaignId: 5512944,
+        //     adTypes: ['sponsoredProducts'],
+        //     orderBy: '',
+        //     orderKey: '',
+        //     page: 1,
+        //     pageSize: 25,
+        //     pagelimit: 2500
+        // };
+        const url = window.location.href;
+        let param = getURLParam(url)
+
+
+        body = {
+            startDate: startDate || '2025-07-01',
+            endDate: endDate || '2026-07-28',
+            profileIds: [
+                param['profileId']
+            ],
+            offset: '-7',
+            tenantId: param['tenantId'],
+            txtType: 'campaignName',
+            filters: [
+                {
+                    field: 'aiCode',
+                    operate: 'in',
+                    values: [
+                        param['aiGroupId']
+                    ]
+                },
+                {
+                    field: 'campaignType',
+                    operate: 'in',
+                    values: [
+                        'sponsoredProducts',
+                        'sponsoredBrands',
+                        'sponsoredDisplay'
+                    ]
+                }
+            ],
             resourceTypes: [],
             operationTypes: [],
-            startDate: startDate || '2024-07-04',
-            endDate: endDate || '2024-07-28',
-            labelType: 'or',
-            labelIds: [],
-            txtType: 'resource',
-            txtVal: '',
-            campaignId: 5512944,
-            adTypes: ['sponsoredProducts'],
+            txtOp: 0,
+            multiExactSearch: [],
             orderBy: '',
             orderKey: '',
             page: 1,
-            pageSize: 25,
-            pagelimit: 2500
-        };
+            pageSize: 20000,
+            pagelimit: 20000
+        }
         console.log("请求参数body:",body)
+        const currentUrl = window.location.href;
+        console.log('当前页面 URL:', currentUrl);
         try {
-            const res = await fetch('https://api.xnurta.com/changelog/search', {
+            const res = await fetch('https://api.xnurta.com/changelog/searchs', {
                 method: 'POST',
                 body: JSON.stringify(body),
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + jwt
+                    'Authorization': 'Bearer ' + jwt,
+                    'tenantId':param['tenantId']
                 }
             });
             const data = await res.json();

@@ -1,0 +1,43 @@
+{
+            startDate: '2024-07-01',
+            endDate: '2024-07-31',
+            profileIds: [
+                '4030808021653559'
+            ],
+            offset: '-7',
+            tenantId: 10683,
+            txtType: 'campaignName',
+            filters: [
+                {
+                    field: 'aiCode',
+                    operate: 'in',
+                    values: [
+                        22580
+                    ]
+                },
+                {
+                    field: 'campaignType',
+                    operate: 'in',
+                    values: [
+                        'sponsoredProducts',
+                        'sponsoredBrands',
+                        'sponsoredDisplay'
+                    ]
+                }
+            ],
+            resourceTypes: [
+        
+            ],
+            operationTypes: [
+        
+            ],
+            txtOp: 0,
+            multiExactSearch: [
+        
+            ],
+            orderBy: '',
+            orderKey: '',
+            page: 1,
+            pageSize: 200,
+            pagelimit: 200
+        }

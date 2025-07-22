@@ -36,8 +36,11 @@
         "*://ai.xnurta.com/*"
       ],
       "js": [
+
+        "js/api.js",
         "content.js",
         "js/echarts.min.js"
+       
       ],
       "run_at": "document_idle"
     }
