@@ -39,6 +39,7 @@
 
         "js/api.js",
         "content.js",
+        "content2.js",
         "js/echarts.min.js"
        
       ],

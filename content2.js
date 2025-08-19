@@ -9,7 +9,7 @@ function waitForElement(selector, callback) {
     }, 100); // 每 100ms 检查一次
 }
 
-function getURLParam(url) {
+function getURLParam(url){
     const params = new URL(url).searchParams;
 
     const aiGroupId = params.get('aiGroupId');
@@ -40,18 +40,24 @@ function getURLParam(url) {
     console.log('aiGroupId:', aiGroupId);
     console.log('profileId:', profileId);
     console.log('tenantId:', tenantId);
-    return { aiGroupId, profileId, tenantId }
+    return {aiGroupId,profileId,tenantId}
 }
 
 
 function useWaitForElement() {
-    if (window.location.pathname !== '/intelligenceCenter/AIBoard') {
+    if (window.location.pathname !== '/allCampaigns/index/CampaignDetail') {
         return;
     }
-    waitForElement('#main > div > div.chart-box', async (target) => {
+    waitForElement('#main > div > div > div.main-content > div > div > div.main-table > div.chart-container', async (target) => {
         const newDiv = document.createElement('div');
         newDiv.style.backgroundColor = 'white';
         target.insertAdjacentElement('afterend', newDiv);
+
+        const div = document.createElement('div');
+        div.style.width = '100%';
+        div.style.height = '300px';
+        target.insertAdjacentElement('afterend', div);
+        renderBarChart(div, [5, 20, 36, 10, 123]);
 
         const localStorageData = window.localStorage.getItem('xmars-token');
         if (!localStorageData) {
@@ -86,18 +92,18 @@ function useWaitForElement() {
         // }
         if (date) {
             const observer = new MutationObserver(() => {
-                const value = target.textContent.trim();
-                const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
-                console.log("日期变了", date.textContent)
+              const value = target.textContent.trim();
+              const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
+              console.log("日期变了",date.textContent)
             });
-
+          
             observer.observe(date, {
-                childList: true,
-                characterData: true,
-                subtree: true,
+              childList: true,
+              characterData: true,
+              subtree: true,
             });
-
-        }
+          
+          }
 
         // 请求数据
         let fakeList = [];
@@ -160,7 +166,7 @@ function useWaitForElement() {
             pageSize: 20000,
             pagelimit: 20000
         }
-        console.log("请求参数body:", body)
+        console.log("请求参数body:",body)
         const currentUrl = window.location.href;
         console.log('当前页面 URL:', currentUrl);
         try {
@@ -170,7 +176,7 @@ function useWaitForElement() {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + jwt,
-                    'tenantId': param['tenantId']
+                    'tenantId':param['tenantId']
                 }
             });
             const data = await res.json();
@@ -192,7 +198,7 @@ function useWaitForElement() {
         let page = 1;
         let pageSize = 10;
         let showAll = false;
-        const pageSizeOptions = [10, 20, 50, 100, 1000000000];
+        const pageSizeOptions = [10, 20, 50, 100,1000000000];
 
         function updateTable() {
             let displayData;
@@ -220,28 +226,6 @@ function useWaitForElement() {
     });
 }
 
-
-// window.onload = function () {
-//     const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
-//     if (target) {
-//         console.log('元素已加载:', target);
-//     } else {
-//         console.log('元素未找到');
-//     }
-// };
-
-// const observer = new MutationObserver((mutationsList, observer) => {
-//     const target = document.querySelector('#main > div > div.ai-group-page > div.data-wrapper > div.chart');
-//     if (target) {
-//         console.log('元素已加载2:', target);
-//         observer.disconnect(); // 一旦找到了目标元素，停止观察
-//     }
-// });
-
-// 监听整个页面的 DOM 变化
-// observer.observe(document.body, { childList: true, subtree: true });
-
-
 useWaitForElement()
 
 
@@ -264,8 +248,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
     }
 
-    if ("send" === message.action) {
-        console.log("content收到来自popup到消息", message, sender)
+    if( "send"===message.action){
+        console.log("content收到来自popup到消息",message,sender)
         sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
     }
 
@@ -285,6 +269,7 @@ function loadEcharts(callback) {
 }
 
 function renderBarChart(dom, data) {
+    console.log("renderBarChart",dom,data)
     const myChart = echarts.init(dom);
     const option = {
         title: { text: '示例柱状图' },
@@ -293,7 +278,7 @@ function renderBarChart(dom, data) {
         yAxis: {},
         series: [{
             name: '数量',
-            type: 'bar',
+            type: 'line',
             data: data
         }]
     };
@@ -329,7 +314,6 @@ function getRandomDate(start, end) {
     return randomDate.toISOString().split('T')[0];
 }
 
-const randomDate = getRandomDate(new Date('2025-01-01'), new Date('2025-01-30'));
 
 
 
@@ -337,7 +321,7 @@ const randomDate = getRandomDate(new Date('2025-01-01'), new Date('2025-01-30'))
 
 
 
-function renderTable(container, allData, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
+function renderTable(container,allData, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
     container.innerHTML = '';
 
     // 只展示这些字段
@@ -440,6 +424,7 @@ function renderTable(container, allData, data, page, pageSize, total, pageSizeOp
     if (container._selectedDate) {
         filteredData = filteredData.filter(item => (item.changedField || '').slice(0, 10) === container._changedField);
     }
+
 
     // ====== 分页处理 ======
     let displayData;
