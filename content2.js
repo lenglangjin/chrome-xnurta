@@ -9,38 +9,22 @@ function waitForElement(selector, callback) {
     }, 100); // 每 100ms 检查一次
 }
 
-function getURLParam(url){
+function getURLParam(url) {
     const params = new URL(url).searchParams;
 
     const aiGroupId = params.get('aiGroupId');
     const profileId = params.get('profileId');
     const tenantId = params.get('tenantId');
+    const id = params.get('id');
 
     // 1. 获取并解码 breadcrumbs 参数
     const breadcrumbsRaw = params.get('breadcrumbs');
     const breadcrumbsDecoded = decodeURIComponent(breadcrumbsRaw);
 
-    // 2. 转换成 JSON 对象
-    // let breadcrumbs = [];
-    // try {
-    // breadcrumbs = JSON.parse(breadcrumbsDecoded);
-    // } catch (e) {
-    // console.error('解析 breadcrumbs 失败', e);
-    // }
-    // // 假设我们只取第一个 breadcrumb 的 query 参数
-    // let profileId = null;
-    // let tenantId = null;
-
-    // if (breadcrumbs.length > 0 && breadcrumbs[0].to && breadcrumbs[0].to.query) {
-    // const query = breadcrumbs[0].to.query;
-    // profileId = query.profileId;
-    // tenantId = query.tenantId;
-    // }
-
     console.log('aiGroupId:', aiGroupId);
     console.log('profileId:', profileId);
     console.log('tenantId:', tenantId);
-    return {aiGroupId,profileId,tenantId}
+    return { aiGroupId, profileId, tenantId, id }
 }
 
 
@@ -53,11 +37,12 @@ function useWaitForElement() {
         newDiv.style.backgroundColor = 'white';
         target.insertAdjacentElement('afterend', newDiv);
 
-        const div = document.createElement('div');
-        div.style.width = '100%';
-        div.style.height = '300px';
-        target.insertAdjacentElement('afterend', div);
-        renderBarChart(div, [5, 20, 36, 10, 123]);
+        console.log('===============================================')
+
+
+        const url = window.location.href;
+        let param = getURLParam(url)
+
 
         const localStorageData = window.localStorage.getItem('xmars-token');
         if (!localStorageData) {
@@ -71,6 +56,27 @@ function useWaitForElement() {
             console.error('token 解析失败', e);
             return;
         }
+
+        ///////////////
+        const asin = await getAsin(jwt, param['id'], param['tenantId']);
+        console.log('asin:', asin)
+        const price_result = await getLast30DaysPrice(asin)
+        console.log('price_result:', price_result)
+
+        const div = document.createElement('div');
+        div.style.width = '100%';
+        div.style.height = '300px';
+        target.insertAdjacentElement('afterend', div);
+        if(price_result.x.length > 0 && price_result.y.length > 0){
+            console.log("渲染柱状图")
+            renderBarChart(div, price_result.x, price_result.y);
+        }else{
+            console.log("没有渲染柱状图")
+            div.removeAttribute('style'); // 移除整个 style 属性
+            div.innerHTML = "未找到统计数据"
+        }
+
+        ///////////////
 
         // 日期选择器
         const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
@@ -92,41 +98,23 @@ function useWaitForElement() {
         // }
         if (date) {
             const observer = new MutationObserver(() => {
-              const value = target.textContent.trim();
-              const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
-              console.log("日期变了",date.textContent)
+                const value = target.textContent.trim();
+                const date = document.querySelector('#app > div > section > main > div > div.header-bar > div.right-part > span:nth-child(2) > span > div > span');
+                console.log("日期变了", date.textContent)
             });
-          
+
             observer.observe(date, {
-              childList: true,
-              characterData: true,
-              subtree: true,
+                childList: true,
+                characterData: true,
+                subtree: true,
             });
-          
-          }
+
+        }
 
         // 请求数据
         let fakeList = [];
-        // const body = {
-        //     profileId: '4030808021653559',
-        //     resourceTypes: [],
-        //     operationTypes: [],
-        //     startDate: startDate || '2024-07-04',
-        //     endDate: endDate || '2024-07-28',
-        //     labelType: 'or',
-        //     labelIds: [],
-        //     txtType: 'resource',
-        //     txtVal: '',
-        //     campaignId: 5512944,
-        //     adTypes: ['sponsoredProducts'],
-        //     orderBy: '',
-        //     orderKey: '',
-        //     page: 1,
-        //     pageSize: 25,
-        //     pagelimit: 2500
-        // };
-        const url = window.location.href;
-        let param = getURLParam(url)
+
+
 
 
         body = {
@@ -166,7 +154,7 @@ function useWaitForElement() {
             pageSize: 20000,
             pagelimit: 20000
         }
-        console.log("请求参数body:",body)
+        console.log("请求参数body:", body)
         const currentUrl = window.location.href;
         console.log('当前页面 URL:', currentUrl);
         try {
@@ -176,7 +164,7 @@ function useWaitForElement() {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + jwt,
-                    'tenantId':param['tenantId']
+                    'tenantId': param['tenantId']
                 }
             });
             const data = await res.json();
@@ -198,7 +186,7 @@ function useWaitForElement() {
         let page = 1;
         let pageSize = 10;
         let showAll = false;
-        const pageSizeOptions = [10, 20, 50, 100,1000000000];
+        const pageSizeOptions = [10, 20, 50, 100, 1000000000];
 
         function updateTable() {
             let displayData;
@@ -248,8 +236,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
     }
 
-    if( "send"===message.action){
-        console.log("content收到来自popup到消息",message,sender)
+    if ("send" === message.action) {
+        console.log("content收到来自popup到消息", message, sender)
         sendResponse("MP-VX-Insight ==> content.js 收到来自 popup.js 的消息")
     }
 
@@ -268,20 +256,97 @@ function loadEcharts(callback) {
     document.documentElement.appendChild(script);
 }
 
-function renderBarChart(dom, data) {
-    console.log("renderBarChart",dom,data)
+function renderBarChart(dom, datax,datay) {
+    console.log("renderBarChart", dom, datax, datay)
+    max = Math.max(...datay)
+    min = Math.min(...datay)
+    
+
     const myChart = echarts.init(dom);
     const option = {
-        title: { text: '示例柱状图' },
-        tooltip: {},
-        xAxis: { data: ['A', 'B', 'C', 'D', 'E'] },
-        yAxis: {},
+        backgroundColor: '#fff', // 白色背景
+        title: {
+          text: '数量统计',
+          left: 'center',
+          textStyle: {
+            fontSize: 18,
+            fontWeight: 'bold', // 加粗
+            color: '#333'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(50,50,50,0.8)',
+          borderRadius: 6,
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        grid: {
+          top: 60,
+          left: 50,
+          right: 30,
+          bottom: 60
+        },
+        xAxis: {
+          type: 'category',
+          data: datax,
+          axisLine: { lineStyle: { color: '#999' } },
+          axisLabel: { color: '#666' }
+        },
+        yAxis: {
+          type: 'value',
+          minInterval: 1,      // 保证至少间隔为 1
+        //   interval: 20, 
+          max: max,
+          min: 0,
+          axisLine: { show: false },
+          splitLine: { lineStyle: { color: '#eee' } },
+          axisLabel: { color: '#666' }
+        },
+        dataZoom: [
+          { type: 'inside' },
+          {
+            type: 'slider',
+            height: 20,
+            bottom: 20,
+            borderColor: '#ccc'
+          }
+        ],
         series: [{
-            name: '数量',
-            type: 'line',
-            data: data
+          name: '数量',
+          type: 'line',
+          data: datay,
+          smooth: true, // 平滑曲线
+          sampling: 'average',
+          showAllSymbol: false, // 避免点太密集
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 2,
+            color: '#5470C6'
+          },
+          itemStyle: {
+            color: '#5470C6'
+          },
+          areaStyle: {
+            opacity: 0.1,
+            color: '#5470C6'
+          },
+          markPoint: {
+            symbol: 'pin',
+            symbolSize: 50,
+            label: {
+              color: '#fff',
+              fontWeight: 'bold'
+            },
+            data: [
+              { type: 'max', name: '最大值' },
+              { type: 'min', name: '最小值' }
+            ]
+          }
         }]
-    };
+      };
     myChart.setOption(option);
 }
 
@@ -321,7 +386,7 @@ function getRandomDate(start, end) {
 
 
 
-function renderTable(container,allData, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
+function renderTable(container, allData, data, page, pageSize, total, pageSizeOptions, onPageChange, onPageSizeChange, showAll) {
     container.innerHTML = '';
 
     // 只展示这些字段
@@ -497,4 +562,114 @@ function renderTable(container,allData, data, page, pageSize, total, pageSizeOpt
 
         container.appendChild(pageDiv);
     }
+
 }
+
+async function getAsin(authorization, id, tenantId) {
+    try {
+        const response = await fetch('https://api.xnurta.com/sparkxads/sa/product-ads/list', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authorization,
+                'tenantId': tenantId
+            },
+            body: {
+                "tenantId": 2064,
+                "currency": "USD",
+                "profileIds": [
+
+                ],
+                "startDate": "20250701",
+                "endDate": "20250721",
+                "prevStartDate": "20250610",
+                "prevEndDate": "20250630",
+                "keywordType": "campaign",
+                "search": "",
+                "filters": [
+                    {
+                        "field": "campaign",
+                        "operate": "in",
+                        "values": [
+                            "sponsoredDisplay-" + id
+                        ]
+                    },
+                    {
+                        "field": "campaignType",
+                        "operate": "in",
+                        "values": [
+                            "sponsoredProducts",
+                            "sponsoredBrands",
+                            "sponsoredDisplay"
+                        ]
+                    }
+                ],
+                "orderBy": "descending",
+                "orderKey": "gapACOS",
+                "page": 1,
+                "pageSize": 200,
+                "pagelimit": 200
+            }
+        });
+
+        const result = await response.json();
+
+        // 检查返回结果格式
+        if (result.code === 0 && result.msg === "SUCCESS" && result.data && result.data.list.length > 0) {
+            // 获取第0个元素的asin值
+            const firstAsin = result.data.list[0].asin;
+            console.log('获取到的ASIN:', firstAsin);
+            return firstAsin; s
+        } else {
+            console.error('接口返回异常:', result);
+            return null;
+        }
+    } catch (error) {
+        console.error('请求失败:', error);
+        return null;
+    }
+
+}
+const KEEP_API_KEY = "rs8ufu9ncf6uhcl01iklp0sivn67r5b02c409clo0d7ik6jc4v5po3alktd1d8r6";
+
+function keepaMinuteToDate(minutes) {
+    const epochStart = new Date("2011-01-01T00:00:00Z").getTime();
+    return new Date(epochStart + minutes * 60000);
+}
+
+async function getLast30DaysPrice(asin) {
+    const url = `https://api.keepa.com/product?key=${KEEP_API_KEY}&domain=1&asin=${asin}&days=30&stats=180`;
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log('url:', url)
+    console.log('keep product data:', data)
+
+    if (!data.products || data.products.length === 0) {
+        console.log("没有找到商品");
+        return;
+    }
+
+    const product = data.products[0];
+    const priceHistory = product.csv[0] || []; // 新品价格历史
+
+    console.log('priceHistory:', priceHistory)
+
+    const now = Date.now();
+    const last30Days = now - 30 * 24 * 60 * 60 * 1000;
+
+    let x = [];
+    let y = [];
+    for (let i = 0; i < priceHistory.length; i += 2) {
+        const time = keepaMinuteToDate(priceHistory[i]).getTime();
+        const price = priceHistory[i + 1] / 100; // 转换成美元
+
+        if (time >= last30Days) {
+            x.push(new Date(time).toISOString().slice(0, 10));
+            y.push(price);
+        }
+    }
+
+    return {x:x,y:y};
+}
+
+
